@@ -1,26 +1,31 @@
 "use client";
 import { Button } from "@/components/ui/button";
-import { SignedIn, useOrganization } from "@clerk/nextjs";
+import { SignedIn, useOrganization, useUser } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 
 export default function Home() {
   const createFile = useMutation(api.files.createFile);
-  const { organization } = useOrganization();
-  const files = useQuery(
-    api.files.getFile,
-    organization?.id ? { orgId: organization.id } : "skip"
-  );
+
+  const organization = useOrganization();
+  const user = useUser();
+
+  let orgId: string | undefined = undefined;
+  if (organization.isLoaded && user.isLoaded) {
+    orgId = organization.organization?.id ?? user.user?.id;
+  }
+
+  const files = useQuery(api.files.getFile, orgId ? { orgId } : "skip");
 
   return (
     <div className="min-h-screen flex justify-center">
       <SignedIn>
         <Button
           onClick={() => {
-            if (!organization) {
+            if (!orgId) {
               return;
             }
-            createFile({ name: "hello world", orgId: organization.id });
+            createFile({ name: "hello world", orgId });
           }}
         >
           Add file name
